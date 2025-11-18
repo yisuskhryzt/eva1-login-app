@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Directory, File as ExpoFile, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import { Task } from '../types/Task';
 
 const TASKS_STORAGE_KEY = '@eva1_tasks';
@@ -47,11 +47,11 @@ export const savePhoto = async (uri: string, taskId: string): Promise<string> =>
 
     // Guardar la foto con el ID de la tarea como nombre
     const fileExtension = uri.split('.').pop() || 'jpg';
-    const sourceFile = new ExpoFile(uri);
-    const destFile = new ExpoFile(directory, `${taskId}.${fileExtension}`);
+    const sourceFile = new File(uri);
+    const destFile = new File(directory, `${taskId}.${fileExtension}`);
     
     // Copiar el archivo
-    sourceFile.copy(destFile);
+    await sourceFile.copy(destFile);
 
     return destFile.uri;
   } catch (error) {
@@ -66,10 +66,9 @@ export const savePhoto = async (uri: string, taskId: string): Promise<string> =>
  */
 export const deletePhoto = async (uri: string): Promise<void> => {
   try {
-    // Crear una instancia de ExpoFile desde el URI
-    const file = new ExpoFile(uri);
+    const file = new File(uri);
     if (file.exists) {
-      file.delete();
+      await file.delete();
     }
   } catch (error) {
     console.error('Error deleting photo:', error);
