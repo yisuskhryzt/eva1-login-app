@@ -1,0 +1,382 @@
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useTasks } from '../context/TaskContext';
+import { useThemeColor } from '../hooks/useThemeColor';
+import { Location as TaskLocation } from '../types/Task';
+
+interface NewTaskModalProps {
+  visible: boolean;
+  onClose: () => void;
+  userId: string;
+}
+
+export const NewTaskModal: React.FC<NewTaskModalProps> = ({ visible, onClose, userId }) => {
+  const [title, setTitle] = useState('');
+  const [photoUri, setPhotoUri] = useState('');
+  const [location, setLocation] = useState<TaskLocation | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  const { createTask } = useTasks();
+  const { colors } = useThemeColor();
+
+  const requestCameraPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permiso requerido',
+        'Necesitamos acceso a la cámara para tomar fotos de las tareas.'
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const requestLocationPermission = async (): Promise<boolean> => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permiso requerido',
+        'Necesitamos acceso a la ubicación para asociarla con la tarea.'
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleTakePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo tomar la foto');
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
+
+  const handleGetLocation = async () => {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) return;
+
+    try {
+      setIsGettingLocation(true);
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      // Intentar obtener la dirección (geocoding inverso)
+      try {
+        const addresses = await Location.reverseGeocodeAsync({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        });
+
+        const address = addresses[0];
+        const formattedAddress = address
+          ? `${address.street || ''} ${address.city || ''}, ${address.region || ''}`.trim()
+          : undefined;
+
+        setLocation({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+          address: formattedAddress,
+        });
+      } catch {
+        // Si falla el geocoding, solo guardar coordenadas
+        setLocation({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo obtener la ubicación');
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
+  const handleCreateTask = async () => {
+    if (!title.trim()) {
+      Alert.alert('Error', 'Por favor ingresa un título para la tarea');
+      return;
+    }
+
+    if (!photoUri) {
+      Alert.alert('Error', 'Por favor toma una foto para la tarea');
+      return;
+    }
+
+    if (!location) {
+      Alert.alert('Error', 'Por favor obtén la ubicación de la tarea');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await createTask(
+        {
+          title: title.trim(),
+          photoUri,
+          location,
+        },
+        userId
+      );
+
+      // Resetear formulario
+      setTitle('');
+      setPhotoUri('');
+      setLocation(null);
+      onClose();
+      Alert.alert('Éxito', 'Tarea creada correctamente');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo crear la tarea');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setTitle('');
+    setPhotoUri('');
+    setLocation(null);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Nueva Tarea</Text>
+          <TouchableOpacity onPress={handleClose}>
+            <Text style={[styles.closeButton, { color: colors.primary }]}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.content}>
+          <View style={styles.section}>
+            <Text style={[styles.label, { color: colors.text }]}>Título</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+              placeholder="¿Qué necesitas hacer?"
+              placeholderTextColor={colors.hint}
+              value={title}
+              onChangeText={setTitle}
+              maxLength={100}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.label, { color: colors.text }]}>Foto</Text>
+            {photoUri ? (
+              <View>
+                <Image source={{ uri: photoUri }} style={styles.previewImage} />
+                <View style={styles.photoButtons}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.secondaryButton, { borderColor: colors.border }]}
+                    onPress={handleTakePhoto}
+                  >
+                    <Text style={[styles.buttonText, { color: colors.text }]}>📷 Retomar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, styles.secondaryButton, { borderColor: colors.border }]}
+                    onPress={handlePickImage}
+                  >
+                    <Text style={[styles.buttonText, { color: colors.text }]}>🖼️ Galería</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.photoButtons}>
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: colors.primary }]}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={[styles.buttonText, { color: '#fff' }]}>📷 Tomar Foto</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.secondaryButton, { borderColor: colors.border }]}
+                  onPress={handlePickImage}
+                >
+                  <Text style={[styles.buttonText, { color: colors.text }]}>🖼️ Galería</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.label, { color: colors.text }]}>Ubicación</Text>
+            {location ? (
+              <View style={[styles.locationCard, { backgroundColor: colors.card }]}>
+                <Text style={[styles.locationText, { color: colors.text }]}>
+                  📍 {location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+                </Text>
+                <TouchableOpacity onPress={handleGetLocation} disabled={isGettingLocation}>
+                  <Text style={[styles.retakeText, { color: colors.primary }]}>Actualizar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: colors.primary }]}
+                onPress={handleGetLocation}
+                disabled={isGettingLocation}
+              >
+                {isGettingLocation ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={[styles.buttonText, { color: '#fff' }]}>📍 Obtener Ubicación</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: colors.primary }]}
+            onPress={handleCreateTask}
+            disabled={isLoading || !title.trim() || !photoUri || !location}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.createButtonText}>Crear Tarea</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    fontSize: 16,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  photoButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  locationCard: {
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  retakeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+  },
+  createButton: {
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+});
