@@ -63,7 +63,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ visible, onClose, us
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -80,7 +80,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({ visible, onClose, us
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,

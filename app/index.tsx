@@ -1,16 +1,16 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useThemeColor } from '../hooks/useThemeColor';
 
