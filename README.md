@@ -71,3 +71,6 @@ La aplicación utiliza un sistema de autenticación simple basado en:
 - **AsyncStorage**: Para credenciales de usuario y datos de tareas
 - **Expo FileSystem**: Para archivos adicionales
 
+
+![Imagenes del proyecto](./assets/screenshots/1.png)
+
