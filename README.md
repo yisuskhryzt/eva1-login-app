@@ -72,5 +72,12 @@ La aplicación utiliza un sistema de autenticación simple basado en:
 - **Expo FileSystem**: Para archivos adicionales
 
 
-![Imagenes del proyecto](./assets/screenshots/1.png)
+##  Imágenes de app
 
+![](./assets/screenshots/1.png)
+![](./assets/screenshots/2.png)
+![](./assets/screenshots/3.png)
+![](./assets/screenshots/4.png)
+![](./assets/screenshots/5.png)
+![](./assets/screenshots/6.png)
+![](./assets/screenshots/7.png)
