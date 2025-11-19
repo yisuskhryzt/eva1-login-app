@@ -1,5 +1,3 @@
-
-
 # EVA1 Login App
 
 Aplicación móvil desarrollada con **React Native** y **Expo** que incluye autenticación de usuarios, gestión de tareas y perfil de usuario.
@@ -51,8 +49,6 @@ npm run ios
 npm run web
 ```
 
-
-
 ## 📝 Scripts Disponibles
 
 | Script | Descripción |
@@ -74,3 +70,4 @@ La aplicación utiliza un sistema de autenticación simple basado en:
 
 - **AsyncStorage**: Para credenciales de usuario y datos de tareas
 - **Expo FileSystem**: Para archivos adicionales
+
